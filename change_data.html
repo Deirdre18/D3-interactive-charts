@@ -1,0 +1,168 @@
+    <!--## This are D3-interactive-charts lesson (from Code Institute Full-Stack Diploma course). Transcription from lessons, included in comments sections in the code.-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>D3 and Scalable Vector Graphics</title>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+</head>
+<body>
+    <h1>Data Visualisation</h1>
+
+    <h2>D3 Charting</h2>
+    <!--Let's play with an example where the data set changes dynamically. In this example we have created two buttons and a text field that allows us to filter and modify the data.  The data, by the way is generated randomly. We can also filter in the data based on values entered into the text field.  So how does this work? You can see we've got our two buttons and our input, and the onclick events are wired up for two of the buttons.-->
+-->
+
+    <button onclick="change_data()">Change Data</button>
+    <button onclick="filtered_data()">Filtered Data</button>
+    <input type=text id="filter_value" placeholder="Minimum required (100)"/>
+    <hr>
+    
+    <!--okay let's look at what we have an overview again and it's all bound to a div. Nothing new here, so we have our two buttons and input, we have onclick event handlers and our custom event handler is our change data and filter data and they kick off the process.-->
+   
+    <div id="draw-here"></div>
+
+    <script>
+        //so before we get to that, we can see that this is our familiar set-up (our heights and our weights, etc). 
+    
+    // Size of Chart
+    var w = 500;
+    var h = 500;
+    var barPadding = 1;
+    var numberOfBars = 19;
+    
+    // Useful Variables
+    colWidth = w / numberOfBars;
+    barWidth = colWidth - barPadding;
+
+    // Create an SVG element
+    var svg = d3.select("#draw-here")
+        .append("svg")
+        .attr("width", w)
+        .attr("height", h);
+
+
+        // First Call to change_data will plot the initial chart.  This is the very first thing that's called before we click the buttons (is to change data) that generates our data first time, and how that data is generator, well it generates a random set of data and sets it as the bar chart. It's called onpage load, and then each time the button is clicked.
+    
+    change_data();
+
+
+        // Generates a Random set of data and plots it as a bar chart
+        // Called once on page load, then each time the button is clicked.  
+    function change_data() {
+        var data = generate_random_data(numberOfBars);
+        plot_data(data);
+    }
+    
+        // Generates a Random set of data and plots it as a bar chart
+        // Called once on page load, then each time the button is clicked.
+    
+        //Let's have a look at the filter data. So it filters the data before plotting into the bar chart and it removes any bars less than the value in the filter input box.  You can see there anything greater than or equal to the filter value gets returned, anything less than doesn't make it.
+    function filtered_data() {
+        var data = generate_random_data(numberOfBars);
+        data = data.filter(function (d) { return d > get_filter_value(); });
+        plot_data(data);
+    }
+    
+    //  Now let's have a look at plot data. So in order to plot the data it takes in a parameter of data itself and it binds our rectangles to the data set passed in.  Once it does that, it cleans out any previous or unneeded rectangles and labels.  
+    function plot_data(data) {
+        // Bind the data to the collections of rectangles and text in the svg element
+        var bars = svg.selectAll("rect")
+                .data(data);
+        var labels = svg.selectAll("text")
+                .data(data);
+        
+        //  Remove any unneeded rectangles and labels (if new data has less items than the existing chart).
+        //  If the data has less items in the existing chart, here you can see exit and remove, it's the opposite of enter, it's a way of removing the bindings between the data and the corresponding rectangles or corresponding SVG objects.  
+        bars.exit().remove();
+        labels.exit().remove();
+
+        //  Append any new rectangles and labels that are needed (if new data has more items than existing chart).
+        //  We then invoke create bars and create labels, these are custom functions we create ourselves. There's a create bars (bars), enter and append to the rectangle. Again these bars are passed in as parameters. Create labels takes in labels parameter and it binds the the text, similar to what we were doing in earlier units, when we were creating a text object.
+        create_bars(bars);
+        create_labels(labels);
+
+        // There should now be the right number of rectangles and labels. 
+        // Resize and position each one according to the new data items.
+        
+        //let's have a look resize bars and position labels. So the resize bars it has a transition and a duration of 500 milliseconds see that's what gives you the nice fluid transitioning between the bar rendering. So it takes 500 milliseconds to bind the data and render the the bars with their newly bound data.
+        resize_bars(bars, data);
+        position_labels(labels, data);        
+    }
+
+    function create_bars(bars) {
+        bars.enter()
+            .append("rect");
+    }
+    
+    function resize_bars(bars, data) {
+        bars.transition()
+            .duration(500)
+            .attr("x", function(d, i) {
+                return i * colWidth;
+            })
+            .attr("y", function(d) {
+                return h - d;
+            })
+            .attr("width", barWidth)
+            .attr("height", function(d) {
+                return d;
+            });
+    }    
+    
+
+    function create_labels(labels) {
+        labels.enter()
+            .append("text")
+            .attr("text-anchor", "middle")
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "11px")
+            .attr("fill", "white");
+    }
+
+    
+    function position_labels(labels, data) {
+        labels.transition()
+            .duration(500)
+            .text(function(d) {
+                return d;
+            })
+            .attr("x", function(d, i) {
+                return i * colWidth + barWidth / 2;
+            })
+            .attr("y", function(d) {
+                return h - d + 14;
+            });
+    }
+    
+//  Here's our random data, it's built up using a random dataset and pushed to an array.  That array then is returned to any code that invokes it.
+//  Return an array on n integers.     
+    function generate_random_data(n) {
+        data = [];
+        
+        for(i=0; i<n; i++) {
+            var value = Math.floor((Math.random() * 500) + 1);
+            data.push(value);
+        }
+        return data;
+    }
+    
+    function get_filter_value() {
+        var value = null;
+        var x=document.getElementById("filter_value").value;
+        value = parseInt(x);
+
+        if(isNaN(value))
+            value=100;
+        
+        return value;
+        }
+        
+    </script>
+</body>
+</html>
